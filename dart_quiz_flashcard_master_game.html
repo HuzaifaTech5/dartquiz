@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dart Master Quiz & Flashcards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 h-full flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-sky-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-lg shadow-lg shadow-sky-500/20">Dart 90</div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight">Master Answer Key Quiz & Flashcards</h1>
+                <p class="text-xs text-slate-400">Interactive study tool based on your Dart Master PDF</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button id="modeQuiz" onclick="switchMode('quiz')" class="px-4 py-2 text-sm font-medium rounded-lg bg-sky-600 text-white shadow-md transition hover:bg-sky-500">Multiple Choice Quiz</button>
+            <button id="modeFlash" onclick="switchMode('flash')" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-700 text-slate-300 transition hover:bg-slate-600">Flashcards</button>
+            <button onclick="resetApp()" class="px-3 py-2 text-sm font-medium rounded-lg bg-slate-700/60 hover:bg-red-600/80 transition text-slate-300 hover:text-white" title="Reset Progress">🔄 Reset</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+
+        <!-- Quiz Mode View -->
+        <div id="quizContainer" class="space-y-6">
+            <!-- Progress Bar & Score -->
+            <div class="flex flex-wrap justify-between items-center bg-slate-800/60 border border-slate-700/60 p-4 rounded-xl shadow">
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm font-medium text-slate-400">Question <span id="currentQNum" class="text-sky-400 font-bold">1</span> of <span id="totalQNum">90</span></span>
+                    <div class="w-32 sm:w-48 bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                        <div id="progressBar" class="bg-sky-500 h-full transition-all duration-300" style="width: 1.11%"></div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="text-sm">Score: <span id="scoreVal" class="font-bold text-emerald-400">0</span></div>
+                    <div class="text-sm">Streak: <span id="streakVal" class="font-bold text-amber-400">🔥 0</span></div>
+                </div>
+            </div>
+
+            <!-- Quiz Card -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+                <div id="questionTag" class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-4">Paper 1</div>
+                <h2 id="questionText" class="text-xl sm:text-2xl font-semibold text-slate-100 mb-6 leading-relaxed">Loading question...</h2>
+
+                <!-- Options Grid -->
+                <div id="optionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <!-- Dynamically populated options -->
+                </div>
+
+                <!-- Explanation Box -->
+                <div id="explanationBox" class="hidden mt-6 p-4 rounded-xl bg-slate-900/80 border border-slate-700 text-sm text-slate-300">
+                    <span class="font-bold text-sky-400 block mb-1">Explanation:</span>
+                    <p id="explanationText"></p>
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="flex justify-between items-center">
+                <button onclick="prevQuestion()" id="prevBtn" class="px-5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-medium hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button>
+                <button onclick="nextQuestion()" id="nextBtn" class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium shadow-lg shadow-sky-600/30 transition">Next Question →</button>
+            </div>
+        </div>
+
+        <!-- Flashcard Mode View -->
+        <div id="flashContainer" class="hidden space-y-6">
+            <div class="flex justify-between items-center bg-slate-800/60 border border-slate-700/60 p-4 rounded-xl">
+                <span class="text-sm font-medium text-slate-400">Flashcard <span id="flashIndex" class="text-sky-400 font-bold">1</span> of <span id="flashTotal">90</span></span>
+                <span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-md">Click card to flip</span>
+            </div>
+
+            <!-- 3D Flippable Card -->
+            <div class="perspective-1000 w-full h-80 sm:h-96 cursor-pointer" onclick="flipCard()">
+                <div id="flashCardInner" class="relative w-full h-full duration-500 transform-style-3d shadow-2xl rounded-2xl">
+                    <!-- Front Side -->
+                    <div class="absolute inset-0 bg-slate-800 border border-slate-700 rounded-2xl p-8 flex flex-col justify-between backface-hidden">
+                        <div class="flex justify-between items-center">
+                            <span id="flashTag" class="px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">Paper 1</span>
+                            <span class="text-xs text-slate-400">Question</span>
+                        </div>
+                        <div class="my-auto text-center">
+                            <h3 id="flashFrontText" class="text-xl sm:text-2xl font-bold text-slate-100">Front question text</h3>
+                        </div>
+                        <div class="text-center text-xs text-slate-400">Click anywhere on card to reveal answer 🔄</div>
+                    </div>
+                    <!-- Back Side -->
+                    <div class="absolute inset-0 bg-slate-850 bg-slate-800 border border-emerald-500/40 rounded-2xl p-8 flex flex-col justify-between backface-hidden rotate-y-180">
+                        <div class="flex justify-between items-center">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Correct Answer</span>
+                            <span class="text-xs text-slate-400">Solution</span>
+                        </div>
+                        <div class="my-auto text-center">
+                            <p id="flashBackText" class="text-xl sm:text-2xl font-bold text-emerald-300">Answer text</p>
+                        </div>
+                        <div class="text-center text-xs text-slate-400">Click to flip back</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flash Navigation -->
+            <div class="flex justify-between items-center">
+                <button onclick="prevFlashcard()" class="px-5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-medium hover:bg-slate-700 transition">← Previous Card</button>
+                <div class="space-x-2">
+                    <button onclick="markFlashCard(false)" class="px-4 py-2.5 rounded-xl bg-rose-600/20 border border-rose-500/40 hover:bg-rose-600 text-rose-300 hover:text-white transition font-medium text-sm">❌ Need Practice</button>
+                    <button onclick="markFlashCard(true)" class="px-4 py-2.5 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600 text-emerald-300 hover:text-white transition font-medium text-sm">✅ Mastered</button>
+                </div>
+                <button onclick="nextFlashcard()" class="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium shadow-lg shadow-sky-600/30 transition">Next Card →</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Note -->
+    <footer class="py-3 text-center text-xs text-slate-500 border-t border-slate-800">
+        Dart Complete Master Answer Key Memorization App • Built for 90 Questions
+    </footer>
+
+    <!-- Custom Message Modal (No alert/confirm used) -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center space-y-4">
+            <h3 id="modalTitle" class="text-xl font-bold text-slate-100">Notice</h3>
+            <p id="modalMessage" class="text-slate-300 text-sm">Message content goes here.</p>
+            <button onclick="closeModal()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-medium rounded-xl transition">Got it</button>
+        </div>
+    </div>
+
+    <script>
+        // Complete Master Dataset of all 90 Questions from the PDF
+        const dartQuestions = [
+            { id: 1, paper: "Paper 1", q: "What ensures type safety in Dart?", options: ["Static typing", "Dynamic typing", "Implicit type conversion", "Null values"], answer: 0, explanation: "Dart uses static type checking (along with sound null safety) to ensure type safety at compile time." },
+            { id: 2, paper: "Paper 1", q: "Identify the invalid statement in Dart.", options: ["int? x = null;", "dynamic y = \"Hello\";", "var z:int = 42;", "final list = [1,2,3];"], answer: 2, explanation: "In Dart, type annotations with var are invalid. You either use 'int z = 42;' or 'var z = 42;'." },
+            { id: 3, paper: "Paper 1", q: "Which statement is true regarding a Stream in Dart?", options: ["Single event only", "Can emit multiple events over time", "Always synchronous", "Cannot be paused"], answer: 1, explanation: "Streams provide a sequence of asynchronous events over time, unlike Futures which represent a single value." },
+            { id: 4, paper: "Paper 1", q: "Output of: int multiply(int x, [int y=2]) => x * y; print(multiply(4));", options: ["4", "8", "Error", "6"], answer: 1, explanation: "y defaults to 2 if not provided. 4 * 2 = 8." },
+            { id: 5, paper: "Paper 1", q: "Output of do-while loop with (i=1, i<3)?", options: ["12", "1", "123", "None of these"], answer: 0, explanation: "Loop prints i and increments while i < 3, outputting 1 and 2 (or 12 concatenated depending on print formatting)." },
+            { id: 6, paper: "Paper 1", q: "Keyword used to define an async function?", options: ["async", "await", "Future", "Defer"], answer: 0, explanation: "The 'async' keyword is placed before the function body to mark it as asynchronous." },
+            { id: 7, paper: "Paper 1", q: "Which keyword is used to handle exceptions in Dart?", options: ["try", "catch", "finally", "All of these"], answer: 3, explanation: "Exception handling in Dart uses try, catch, and finally blocks." },
+            { id: 8, paper: "Paper 1", q: "Where are Dart packages typically hosted?", options: ["GitHub", "Maven", "Pub.dev", "npm"], answer: 2, explanation: "Pub.dev is the official package repository for Dart and Flutter." },
+            { id: 9, paper: "Paper 1", q: "Set numbers = {1, 2, 3, 4}; print(contains(2)); print(contains(5));", options: ["true true", "true false", "false true", "false false"], answer: 1, explanation: "2 is in the set (true), but 5 is not (false)." },
+            { id: 10, paper: "Paper 1", q: "Which keyword is used for inheritance in Dart?", options: ["extends", "inherit", "implements", "super"], answer: 0, explanation: "The 'extends' keyword is used to inherit from a parent class." },
+            { id: 11, paper: "Paper 1", q: "True about abstract methods in Dart?", options: ["They cannot have a body.", "Must be private", "Non-abstract classes can have them", "Cannot override them"], answer: 0, explanation: "Abstract methods are declared without an implementation body and must be overridden in subclasses." },
+            { id: 12, paper: "Paper 1", q: "Output of: int x=5; while(x>0) print(x--);", options: ["54321", "55555", "43210", "Error"], answer: 0, explanation: "Postfix decrement uses the current value (5,4,3,2,1) then decrements." },
+            { id: 13, paper: "Paper 1", q: "List lst = [1,2,3]; lst.add(4); lst.removeAt(1); print(lst);", options: ["[1, 3, 4]", "[2,3,4]", "[1,2,4]", "[1,3]"], answer: 0, explanation: "Add 4 -> [1,2,3,4]. removeAt(1) removes index 1 (which is 2), leaving [1, 3, 4]." },
+            { id: 14, paper: "Paper 1", q: "Primary characteristic of a Set in Dart?", options: ["Allows duplicates", "Maintains insertion order", "Stores only unique elements", "Key-value pairs"], answer: 2, explanation: "Sets cannot contain duplicate values and store unique elements." },
+            { id: 15, paper: "Paper 1", q: "How is a class defined in Dart?", options: ["class ClassName", "define ClassName", "Class", "struct"], answer: 0, explanation: "Classes are defined using the 'class' keyword followed by the class name." },
+            { id: 16, paper: "Paper 2", q: "Which syntax defines optional positional parameters?", options: ["[param1, param2]", "param1?", "named", "{param1}"], answer: 0, explanation: "Optional positional parameters are enclosed in square brackets `[]`." },
+            { id: 17, paper: "Paper 2", q: "Output of: String? name; print(name ?? \"No Name\");", options: ["null", "No Name", "Error", "Empty"], answer: 1, explanation: "The null-coalescing operator `??` returns the right-hand side if the left-hand side is null." },
+            { id: 18, paper: "Paper 2", q: "Dart is primarily used with which framework?", options: ["Flutter", "React Native", "Xamarin", "Node.js"], answer: 0, explanation: "Dart is famously paired with Flutter for cross-platform app development." },
+            { id: 19, paper: "Paper 2", q: "Which Dart Collections statement is correct?", options: ["Set allows duplicates", "List maintains insertion order", "Map has no unique keys", "Can modify const list elements"], answer: 1, explanation: "Lists maintain ordered collections of items." },
+            { id: 20, paper: "Paper 2", q: "Accessing a null variable without null safety protection results in:", options: ["Compile-time error", "Runtime error or crash", "Returns null safely", "Undefined variable"], answer: 1, explanation: "Historically or in legacy code, null pointer exceptions occurred at runtime." },
+            { id: 21, paper: "Paper 3", q: "Which loop is best for a fixed range of numbers?", options: ["while loop", "for loop", "do-while loop", "switch statement"], answer: 1, explanation: "The 'for' loop is specifically structured for known iterations and ranges." },
+            { id: 22, paper: "Paper 3", q: "What is an abstract class in Dart?", options: ["Has no methods", "Only static methods", "Cannot be instantiated directly", "Has no properties"], answer: 2, explanation: "Abstract classes serve as blueprints and cannot be instantiated directly using `new` or `ClassName()`." },
+            { id: 23, paper: "Paper 3", q: "Difference between await and yield?", options: ["await waits for Future, yield produces values in async generator", "They pause execution identically", "yield returns a Future", "No difference"], answer: 0, explanation: "await unwraps Futures, while yield emits values in Stream/async generators." },
+            { id: 24, paper: "Paper 3", q: "Which snippet throws an error?", options: ["List add", "List.empty(growable: false).add(4)", "Set add", "Map get"], answer: 1, explanation: "Adding to a non-growable fixed-length list throws an UnsupportedError at runtime." },
+            { id: 25, paper: "Paper 3", q: "Purpose of finally block in Dart?", options: ["Execute code regardless of exceptions", "Log warnings only", "Rethrow errors automatically", "Handle exceptions"], answer: 0, explanation: "The finally block executes whether an exception occurred or was caught or not." },
+            { id: 26, paper: "Paper 3", q: "Which statement about mixins is FALSE?", options: ["A mixin can contain a constructor", "Can be applied to multiple classes", "Cannot be instantiated directly", "Uses the mixin keyword"], answer: 0, explanation: "Mixins cannot have constructors in Dart." },
+            { id: 27, paper: "Paper 3", q: "Role of await keyword?", options: ["Declares async function", "Pauses execution until Future completes", "Runs tasks concurrently", "Returns a Future"], answer: 1, explanation: "await suspends the surrounding async function until the awaited Future resolves." },
+            { id: 28, paper: "Paper 3", q: "Dart is categorized as a...", options: ["Procedural language", "Functional language", "Object-oriented language", "Logic programming language"], answer: 2, explanation: "Dart is a class-based, object-oriented garbage-collected language." },
+            { id: 29, paper: "Paper 3", q: "What does pattern matching allow in Dart?", options: ["Compare types easily", "Define mixins", "Control loop speeds", "Matching data structures against specific patterns"], answer: 3, explanation: "Pattern matching destructures and tests data against structures." },
+            { id: 30, paper: "Paper 3", q: "Output of: int x=20; if(x%2==0) \"Even\" else if(x<10) \"Less\" else \"Odd\"", options: ["Even", "Odd and Less", "Odd", "Error"], answer: 0, explanation: "20 % 2 == 0 evaluates to true, returning \"Even\" immediately." },
+            { id: 31, paper: "Paper 3", q: "What is a Stream?", options: ["A sequence of asynchronous events", "Synchronous task queue", "Standard collection", "Mixin type"], answer: 0, explanation: "Streams provide asynchronous event streams." },
+            { id: 32, paper: "Paper 3", q: "Which keyword is used to implement an interface?", options: ["extends", "implements", "interface", "abstract"], answer: 1, explanation: "Classes use 'implements' to adopt an interface contract." },
+            { id: 33, paper: "Paper 3", q: "Which feature supports method overriding?", options: ["Abstraction", "Encapsulation", "Polymorphism", "Mixins"], answer: 2, explanation: "Polymorphism allows subclasses to override methods from parent classes." },
+            { id: 34, paper: "Paper 3", q: "How do you access a static member in Dart?", options: ["ClassName.memberName", "object.member", "-> operator", "static.member"], answer: 0, explanation: "Static members belong to the class and are accessed via ClassName.member." },
+            { id: 35, paper: "Paper 3", q: "Difference between while and do-while loops?", options: ["while executes at least once", "while checks condition after execution", "do-while executes at least once", "They are identical"], answer: 2, explanation: "do-while evaluates condition at the end, ensuring at least one execution." },
+            { id: 36, paper: "Paper 4", q: "Can a subclass inherit multiple classes directly?", options: ["implements multiple", "Yes, using mixins", "No multiple class inheritance", "extends multiple"], answer: 1, explanation: "Dart doesn't support multiple class inheritance, but allows code reuse via mixins." },
+            { id: 37, paper: "Paper 4", q: "Syntax defining optional positional parameters?", options: ["[param1, param2]", "param1?", "named parameters", "{param1}"], answer: 0, explanation: "Optional positional parameters are enclosed in brackets `[]`." },
+            { id: 38, paper: "Paper 4", q: "What does a Future represent in Dart?", options: ["A collection", "An object representing a delayed computation", "Concurrency thread", "A list"], answer: 1, explanation: "A Future represents the result of an asynchronous operation that will complete in the future." },
+            { id: 39, paper: "Paper 4", q: "Can you call await inside a Stream subscription callback?", options: ["Causes freeze", "Synchronous execution", "Cannot directly inside sync callback", "Stream pauses and resumes"], answer: 2, explanation: "Standard event handler callbacks are synchronous; async/awaiting inside them requires careful async handling." },
+            { id: 40, paper: "Paper 4", q: "What is an extension method in Dart?", options: ["Add functionality to existing classes without modifying them", "Override parent methods", "Create mixins", "Import libraries"], answer: 0, explanation: "Extension methods allow adding new functionality to existing libraries/classes safely." },
+            { id: 41, paper: "Paper 5", q: "What is the purpose of closures in Dart?", options: ["Allow functions to access variables from their containing scope", "Async operations only", "Variable shadowing", "Class restriction"], answer: 0, explanation: "Closures are lexical closures that retain access to variables in their enclosing scope." },
+            { id: 42, paper: "Paper 5", q: "Output after trying to modify a const list: const list = [1,2,3]; list[1] = 4;", options: ["[1, 4, 3]", "Error: Cannot modify an unmodifiable list", "[1, 2, 3]", "Crash app"], answer: 1, explanation: "Const collections are immutable and throw an exception when modified." },
+            { id: 43, paper: "Paper 5", q: "Valid way to declare a variable in Dart?", options: ["var name = \"Alice\";", "name \"Alice\"", "declare name", "name: string"], answer: 0, explanation: "Type inference with 'var' is fully valid." },
+            { id: 44, paper: "Paper 5", q: "Which of the following is NOT a generic collection in Dart?", options: ["Future", "List", "Map", "Set"], answer: 0, explanation: "Future represents a computation result, whereas List, Map, and Set are core collections." },
+            { id: 45, paper: "Paper 5", q: "What is an object in Dart?", options: ["Primitive variable", "Function reference", "An instance of a class", "Data type"], answer: 2, explanation: "Everything in Dart is an object, and an object is an instance of a class." },
+            { id: 46, paper: "Paper 5", q: "Subclass inheritance limitation solved by:", options: ["implements", "Yes, using mixins", "No multiple inheritance", "extends"], answer: 1, explanation: "Mixins provide code reuse across multiple class hierarchies." },
+            { id: 47, paper: "Paper 5", q: "Difference between while and do-while:", options: ["while executes at least once", "condition check timing", "do-while executes at least once", "Identical"], answer: 2, explanation: "do-while guarantees at least one execution." },
+            { id: 48, paper: "Paper 5", q: "Keyword used to define an asynchronous function?", options: ["async", "await", "Future", "Defer"], answer: 0, explanation: "The 'async' keyword identifies asynchronous functions." },
+            { id: 49, paper: "Paper 5", q: "What is an extension method?", options: ["Add functionality to existing classes without modifying them", "Override methods", "Mixin", "Library"], answer: 0, explanation: "Extension methods add methods to existing types." },
+            { id: 50, paper: "Paper 5", q: "Which keyword is used to include a mixin in a class?", options: ["extends", "mixin", "with", "implements"], answer: 2, explanation: "The 'with' keyword is used to mix in behaviors." },
+            { id: 51, paper: "Paper 5", q: "Output: int x=5; while(x>0) print(x--);", options: ["54321", "55555", "43210", "Error"], answer: 0, explanation: "Counts down from 5 to 1." },
+            { id: 52, paper: "Paper 5", q: "Output: int multiply(int x, [int y=2]) => x * y; print(multiply(4));", options: ["4", "8", "Error", "6"], answer: 1, explanation: "4 * 2 = 8." },
+            { id: 53, paper: "Paper 5", q: "What does a Future represent?", options: ["Collection", "An object representing a delayed computation", "Concurrency", "List"], answer: 1, explanation: "Represents asynchronous computation results." },
+            { id: 54, paper: "Paper 5", q: "Stream statement:", options: ["Single event", "Can emit multiple events over time", "Synchronous", "Cannot pause"], answer: 1, explanation: "Streams emit multiple asynchronous events." },
+            { id: 55, paper: "Paper 5", q: "Dart is primarily used for...", options: ["Backend servers", "Game engines", "Web and mobile app development", "Database systems"], answer: 2, explanation: "Dart powers Flutter for multi-platform web, mobile, and desktop apps." },
+            { id: 56, paper: "Paper 5", q: "What ensures type safety in Dart?", options: ["Static typing", "Dynamic typing", "Implicit conversion", "Null safety"], answer: 0, explanation: "Static type checking ensures type safety." },
+            { id: 57, paper: "Paper 5", q: "Set numbers = {1,2,3,4}; contains(2); contains(5);", options: ["true true", "true false", "false true", "false false"], answer: 1, explanation: "2 is present, 5 is absent." },
+            { id: 58, paper: "Paper 5", q: "Which statement about mixins is FALSE?", options: ["A mixin can contain a constructor", "Multiple classes", "Cannot instantiate", "mixin keyword"], answer: 0, explanation: "Mixins cannot have constructors." },
+            { id: 59, paper: "Paper 5", q: "True about abstract methods:", options: ["They cannot have a body.", "Private", "Non-abstract", "Cannot override"], answer: 0, explanation: "Abstract methods lack bodies." },
+            { id: 60, paper: "Paper 5", q: "Output: String? name; print(name ?? \"No Name\");", options: ["null", "No Name", "Error", "Empty"], answer: 1, explanation: "Outputs 'No Name' because name is null." },
+            { id: 61, paper: "Paper 6", q: "Output of: int multiply(int x, [int y=2]) => x*y; print(multiply(4));", options: ["4", "8", "Error", "6"], answer: 1, explanation: "4 * 2 = 8." },
+            { id: 62, paper: "Paper 6", q: "What happens if you access a null variable without null safety?", options: ["Compile-time error", "Runtime error", "Returns null", "Undefined"], answer: 1, explanation: "Legacy un-safe code threw runtime null pointer exceptions." },
+            { id: 63, paper: "Paper 6", q: "Which keyword is used to include a mixin in a class?", options: ["extends", "mixin", "with", "implements"], answer: 2, explanation: "Use 'with' to apply mixins." },
+            { id: 64, paper: "Paper 6", q: "How are named parameters denoted in Dart?", options: ["[param1]", "(param1)", "(param1, param2)", "Curly braces {param1}"], answer: 3, explanation: "Named parameters are enclosed in curly braces `{}`." },
+            { id: 65, paper: "Paper 6", q: "What is the purpose of a setter method?", options: ["Get value", "Initialize field", "To set the value of a field", "Compare fields"], answer: 2, explanation: "Setters configure property values with custom logic." },
+            { id: 66, paper: "Paper 6", q: "Output: String? name; print(name ?? \"No Name\");", options: ["null", "No Name", "Error", "Empty"], answer: 1, explanation: "Evaluates to 'No Name'." },
+            { id: 67, paper: "Paper 6", q: "Difference between await and yield?", options: ["await waits for Future, yield produces values in async generator", "pause", "yield Future", "No diff"], answer: 0, explanation: "await handles Futures; yield emits stream values." },
+            { id: 68, paper: "Paper 6", q: "Keyword used to define an asynchronous function?", options: ["async", "await", "Future", "Defer"], answer: 0, explanation: "async keyword marks asynchronous functions." },
+            { id: 69, paper: "Paper 6", q: "Which feature supports method overriding?", options: ["Abstraction", "Encapsulation", "Polymorphism", "Mixins"], answer: 2, explanation: "Polymorphism enables method overriding." },
+            { id: 70, paper: "Paper 6", q: "Output order of async code execution:", options: ["Second, First, Third, Fourth", "First, Second...", "Second, Third...", "Second, First..."], answer: 0, explanation: "Async scheduling order test question from paper." },
+            { id: 71, paper: "Paper 6", q: "What is true about static members in Dart?", options: ["They belong to the class, not the instance.", "Private", "Read-only", "Cannot access"], answer: 0, explanation: "Static members are class-level variables/methods." },
+            { id: 72, paper: "Paper 6", q: "Which Dart snippet will throw an error?", options: ["List add", "List.empty(growable: false).add(4)", "Set add", "Map print"], answer: 1, explanation: "Adding to fixed-length list throws error." },
+            { id: 73, paper: "Paper 6", q: "Primary purpose of sealed classes in Dart?", options: ["Type safety", "To restrict class hierarchies", "Async control", "Dynamic check"], answer: 1, explanation: "Sealed classes restrict subclassing to the same library file." },
+            { id: 74, paper: "Paper 6", q: "Which of the following is NOT a benefit of Dart?", options: ["Cross-platform", "Open source", "Seamless integration", "Platform-dependent codebase"], answer: 3, explanation: "Dart offers platform-independent codebase, not dependent." },
+            { id: 75, paper: "Paper 6", q: "What happens when you access a nullable variable without null-checking?", options: ["Compiler error", "Runtime error", "Exec normal", "Default value"], answer: 0, explanation: "Modern Dart sound null safety catches this at compile time." },
+            { id: 76, paper: "Extra", q: "Which keyword is used for inheritance in Dart?", options: ["extends", "inherit", "Implements", "super"], answer: 0, explanation: "extends keyword handles inheritance." },
+            { id: 77, paper: "Extra", q: "Output of: int x=5; while(x>0) print(x--);", options: ["54321", "55555", "43210", "Error"], answer: 0, explanation: "Outputs 54321." },
+            { id: 78, paper: "Extra", q: "List [1,2,3], add(4), removeAt(1), print?", options: ["[1, 3, 4]", "[2,3,4]", "[1,2,4]", "[1,3]"], answer: 0, explanation: "Results in [1, 3, 4]." },
+            { id: 79, paper: "Extra", q: "Primary characteristic of a Set in Dart?", options: ["Duplicates", "Insertion order", "Stores only unique elements", "Key-value"], answer: 2, explanation: "Stores unique items only." },
+            { id: 80, paper: "Extra", q: "How is a class defined in Dart?", options: ["class ClassName", "define ClassName", "Class", "struct"], answer: 0, explanation: "class ClassName syntax." },
+            { id: 81, paper: "Final", q: "Which syntax defines optional positional parameters in Dart?", options: ["[param1, param2]", "param1?", "named", "{param1}"], answer: 0, explanation: "Optional positional parameters use `[]`." },
+            { id: 82, paper: "Final", q: "What is the output of String? name; print(name ?? \"No Name\");?", options: ["null", "No Name", "Error", "Empty"], answer: 1, explanation: "Outputs 'No Name'." },
+            { id: 83, paper: "Final", q: "Dart is primarily used with which framework?", options: ["Flutter", "React Native", "Xamarin", "Node.js"], answer: 0, explanation: "Flutter framework." },
+            { id: 84, paper: "Final", q: "Which Dart Collections statement is correct?", options: ["Set duplicates", "List maintains order", "Map no unique keys", "Modify const"], answer: 1, explanation: "List maintains insertion order." },
+            { id: 85, paper: "Final", q: "What happens if you try to access a null variable without null safety?", options: ["Compile error", "Runtime error", "Returns null", "Undefined"], answer: 0, explanation: "Compile error under sound null safety." },
+            { id: 86, paper: "Final", q: "Which loop is best suited for iterating over a fixed range of numbers?", options: ["while", "for loop", "do-while", "switch"], answer: 1, explanation: "for loop." },
+            { id: 87, paper: "Final", q: "Output of Set numbers = {1,2,3,4}; contains(2); contains(5)?", options: ["true true", "true false", "false true", "false false"], answer: 1, explanation: "true false." },
+            { id: 88, paper: "Final", q: "What is an abstract class in Dart?", options: ["No methods", "Only static", "Cannot be instantiated", "No properties"], answer: 2, explanation: "Cannot be instantiated." },
+            { id: 89, paper: "Final", q: "Difference between await and yield in Dart?", options: ["await waits for Future, yield produces values in async generator", "pause", "yield Future", "No diff"], answer: 0, explanation: "await for Future, yield for async generator." },
+            { id: 90, paper: "Final", q: "Which Dart code snippet will throw an error?", options: ["List add", "List.empty(growable: false).add(4)", "Set add", "Map print"], answer: 1, explanation: "Adding to fixed-length list throws error." }
+        ];
+
+        let currentMode = 'quiz';
+        let currentIndex = 0;
+        let score = 0;
+        let streak = 0;
+        let answeredQuestions = {};
+        let flashIndex = 0;
+        let isFlashFlipped = false;
+
+        // Initialize App
+        window.onload = function() {
+            loadQuestion();
+            loadFlashcard();
+        };
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const quizContainer = document.getElementById('quizContainer');
+            const flashContainer = document.getElementById('flashContainer');
+            const modeQuiz = document.getElementById('modeQuiz');
+            const modeFlash = document.getElementById('modeFlash');
+
+            if (mode === 'quiz') {
+                quizContainer.classList.remove('hidden');
+                flashContainer.classList.add('hidden');
+                modeQuiz.className = "px-4 py-2 text-sm font-medium rounded-lg bg-sky-600 text-white shadow-md transition hover:bg-sky-500";
+                modeFlash.className = "px-4 py-2 text-sm font-medium rounded-lg bg-slate-700 text-slate-300 transition hover:bg-slate-600";
+            } else {
+                quizContainer.classList.add('hidden');
+                flashContainer.classList.remove('hidden');
+                modeFlash.className = "px-4 py-2 text-sm font-medium rounded-lg bg-sky-600 text-white shadow-md transition hover:bg-sky-500";
+                modeQuiz.className = "px-4 py-2 text-sm font-medium rounded-lg bg-slate-700 text-slate-300 transition hover:bg-slate-600";
+                loadFlashcard();
+            }
+        }
+
+        function loadQuestion() {
+            const q = dartQuestions[currentIndex];
+            document.getElementById('currentQNum').innerText = currentIndex + 1;
+            document.getElementById('totalQNum').innerText = dartQuestions.length;
+            document.getElementById('questionTag').innerText = q.paper;
+            document.getElementById('questionText').innerText = q.q;
+            
+            // Progress bar
+            const pct = ((currentIndex + 1) / dartQuestions.length) * 100;
+            document.getElementById('progressBar').style.width = pct + '%';
+
+            const optionsGrid = document.getElementById('optionsGrid');
+            optionsGrid.innerHTML = '';
+
+            const explanationBox = document.getElementById('explanationBox');
+            explanationBox.classList.add('hidden');
+
+            const isAlreadyAnswered = answeredQuestions[currentIndex] !== undefined;
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "p-4 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-700/50 text-left transition font-medium text-slate-200 flex items-center justify-between group";
+                btn.innerHTML = `<span><strong class="text-sky-400 mr-2">${String.fromCharCode(65 + idx)}.</strong> ${opt}</span>`;
+                
+                if (isAlreadyAnswered) {
+                    btn.disabled = true;
+                    if (idx === q.answer) {
+                        btn.className = "p-4 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-300 text-left font-medium flex items-center justify-between";
+                    } else if (idx === answeredQuestions[currentIndex]) {
+                        btn.className = "p-4 rounded-xl border border-rose-500 bg-rose-500/10 text-rose-300 text-left font-medium flex items-center justify-between";
+                    }
+                } else {
+                    btn.onclick = () => selectOption(idx);
+                }
+                optionsGrid.appendChild(btn);
+            });
+
+            if (isAlreadyAnswered) {
+                document.getElementById('explanationText').innerText = q.explanation;
+                explanationBox.classList.remove('hidden');
+            }
+
+            document.getElementById('prevBtn').disabled = currentIndex === 0;
+        }
+
+        function selectOption(selectedIdx) {
+            const q = dartQuestions[currentIndex];
+            answeredQuestions[currentIndex] = selectedIdx;
+
+            const buttons = document.getElementById('optionsGrid').children;
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (i === q.answer) {
+                    buttons[i].className = "p-4 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-300 text-left font-medium flex items-center justify-between";
+                } else if (i === selectedIdx && selectedIdx !== q.answer) {
+                    buttons[i].className = "p-4 rounded-xl border border-rose-500 bg-rose-500/10 text-rose-300 text-left font-medium flex items-center justify-between";
+                }
+            }
+
+            if (selectedIdx === q.answer) {
+                score += 10;
+                streak += 1;
+            } else {
+                streak = 0;
+            }
+
+            document.getElementById('scoreVal').innerText = score;
+            document.getElementById('streakVal').innerText = `🔥 ${streak}`;
+
+            document.getElementById('explanationText').innerText = q.explanation;
+            document.getElementById('explanationBox').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            if (currentIndex < dartQuestions.length - 1) {
+                currentIndex++;
+                loadQuestion();
+            } else {
+                showModal("Quiz Completed! 🎉", `Fantastic job completing all 90 Dart questions! Your final score is ${score} points.`);
+            }
+        }
+
+        function prevQuestion() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                loadQuestion();
+            }
+        }
+
+        // Flashcard Logic
+        function loadFlashcard() {
+            const q = dartQuestions[flashIndex];
+            document.getElementById('flashIndex').innerText = flashIndex + 1;
+            document.getElementById('flashTotal').innerText = dartQuestions.length;
+            document.getElementById('flashTag').innerText = q.paper;
+            document.getElementById('flashFrontText').innerText = q.q;
+            document.getElementById('flashBackText').innerText = q.options[q.answer];
+
+            if (isFlashFlipped) {
+                flipCard(true); // reset flip state
+            }
+        }
+
+        function flipCard(forceReset = false) {
+            const cardInner = document.getElementById('flashCardInner');
+            if (forceReset) {
+                isFlashFlipped = false;
+                cardInner.style.transform = 'rotateY(0deg)';
+                return;
+            }
+            isFlashFlipped = !isFlashFlipped;
+            cardInner.style.transform = isFlashFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+        }
+
+        function nextFlashcard() {
+            if (flashIndex < dartQuestions.length - 1) {
+                flashIndex++;
+                loadFlashcard();
+            } else {
+                flashIndex = 0;
+                loadFlashcard();
+            }
+        }
+
+        function prevFlashcard() {
+            if (flashIndex > 0) {
+                flashIndex--;
+                loadFlashcard();
+            }
+        }
+
+        function markFlashCard(mastered) {
+            nextFlashcard();
+        }
+
+        function resetApp() {
+            currentIndex = 0;
+            flashIndex = 0;
+            score = 0;
+            streak = 0;
+            answeredQuestions = {};
+            document.getElementById('scoreVal').innerText = score;
+            document.getElementById('streakVal').innerText = `🔥 ${streak}`;
+            loadQuestion();
+            loadFlashcard();
+            showModal("App Reset", "All progress and scores have been reset. Good luck studying!");
+        }
+
+        function showModal(title, msg) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = msg;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
